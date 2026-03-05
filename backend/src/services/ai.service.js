@@ -5,6 +5,49 @@ const { zodToJsonSchema } = require("zod-to-json-schema");
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GENAI_API_KEY,
 });
+function normalizeQuestions(arr) {
+  if (!Array.isArray(arr)) return [];
+
+  return arr.map((item) => {
+    if (typeof item === "string") {
+      return {
+        question: item,
+        intention: "Evaluate understanding of the topic",
+        answer: "Explain the concept clearly with examples and best practices",
+      };
+    }
+    return item;
+  });
+}
+
+function normalizeSkillGaps(arr) {
+  if (!Array.isArray(arr)) return [];
+
+  return arr.map((item) => {
+    if (typeof item === "string") {
+      return {
+        skill: item,
+        severity: "medium",
+      };
+    }
+    return item;
+  });
+}
+
+function normalizePreparation(arr) {
+  if (!Array.isArray(arr)) return [];
+
+  return arr.map((item, index) => {
+    if (typeof item === "string") {
+      return {
+        day: index + 1,
+        focus: item,
+        tasks: ["Study the topic", "Practice coding examples"],
+      };
+    }
+    return item;
+  });
+}
 
 const interviewReportSchema = z.object({
   matchScore: z
@@ -68,22 +111,20 @@ const interviewReportSchema = z.object({
       z.object({
         day: z
           .number()
-          .description(
-            "The day number in the preparation plan ,starting from 1",
-          ),
+          .describe("The day number in the preparation plan ,starting from 1"),
         focus: z
           .string()
-          .description(
+          .describe(
             "The main focus of this day in the preparation plan e.g system design , mock interview ,data structures",
           ),
         tasks: z
           .array(z.string())
-          .description(
+          .describe(
             "List of tasks to be done on this day to follow the preparation plan e.g read a specific book ,practice leet code",
           ),
       }),
     )
-    .description(
+    .describe(
       "A day wise preparation plan for the candidate to follow the order for the interview effectively",
     ),
 });
@@ -93,16 +134,74 @@ async function generateInterviewReport({
   selfDescription,
   jobDescription,
 }) {
-  const prompt = `Generate an interview report for a candidate with the following details:
-    Resume:${resume} Self Description:${selfDescription} Job Description: ${jobDescription}`;
+  const prompt = `
+You are an AI interview preparation assistant.
+
+Return ONLY valid JSON.
+
+Each element in technicalQuestions and behavioralQuestions MUST be an object:
+
+{
+ "question": "string",
+ "intention": "string",
+ "answer": "string"
+}
+
+Each skillGap must be:
+
+{
+ "skill": "string",
+ "severity": "low | medium | high"
+}
+
+Each preparationPlan item must be:
+
+{
+ "day": number,
+ "focus": "string",
+ "tasks": ["string"]
+}
+
+Generate:
+- matchScore
+- 5 technicalQuestions
+- 5 behavioralQuestions
+- 3 skillGaps
+- 7 preparationPlan days
+
+Resume:
+${resume}
+
+Self Description:
+${selfDescription}
+
+Job Description:
+${jobDescription}
+`;
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: "",
+    contents: prompt,
     config: {
       responseMimeType: "application/json",
       responseSchema: zodToJsonSchema(interviewReportSchema),
     },
   });
-  return JSON.parse(response.text);
+  const data = JSON.parse(response.text);
+
+// normalize bad AI responses
+data.technicalQuestions = normalizeQuestions(data.technicalQuestions);
+data.behavioralQuestions = normalizeQuestions(data.behavioralQuestions);
+data.skillGaps = normalizeSkillGaps(data.skillGaps);
+data.preparationPlan = normalizePreparation(data.preparationPlan);
+
+// now validate
+const parsed = interviewReportSchema.safeParse(data);
+
+if (!parsed.success) {
+  console.error("AI RESPONSE INVALID:", parsed.error);
+  throw new Error("Invalid AI response format");
+}
+
+return parsed.data;
 }
 module.exports = generateInterviewReport;
