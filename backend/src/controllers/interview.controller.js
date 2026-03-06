@@ -81,11 +81,6 @@ async function getAllInterviewReportsController(req, res) {
     .find({ user: req.user.id })
     .sort({ createdAt: -1 })
     .select("-resume -selfDescription -jobDescription -technicalQuestions -behavioralQuestions -skillGaps -preparationPlan");
-    
-  res.status(200).json({
-    message: "Interview reports fetched successfully",
-    interviewReports,
-  });
 
 }
 module.exports = {
