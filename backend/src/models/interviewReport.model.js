@@ -4,7 +4,7 @@ const technicalQuestionSchema = new mongoose.Schema(
   {
     question: {
       type: String,
-      required: [true, "Technical Questions is required"],
+      required: [true, "Technical question is required"],
     },
     intention: {
       type: String,
@@ -24,7 +24,7 @@ const behavioralQuestionSchema = new mongoose.Schema(
   {
     question: {
       type: String,
-      required: [true, "Technical Questions is required"],
+      required: [true, "Technical question is required"],
     },
     intention: {
       type: String,
@@ -101,7 +101,7 @@ const interviewReportSchema = new mongoose.Schema(
     },
     title: {
       type: String,
-      required: [true, "job title is required"],
+      required: [true, "Job title is required"],
     },
   },
   {

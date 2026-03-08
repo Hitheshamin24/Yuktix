@@ -4,7 +4,7 @@ const blacklistTokenSchema = new mongoose.Schema(
   {
     token: {
       type: String,
-      required: [true, "Token is require to be added in blacklist"],
+      required: [true, "token is required to be added in blacklist"],
     },
   },
   {
@@ -13,7 +13,7 @@ const blacklistTokenSchema = new mongoose.Schema(
 );
 
 const tokenBlacklistModel = mongoose.model(
-  "blacklistToken",
+  "blacklistTokens",
   blacklistTokenSchema,
 );
 
